@@ -43,62 +43,58 @@ async function getAllExtensionNumbers(req: Request, res: Response): Promise<void
 
 async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Promise<void> {
   try {
-    const conn = new Connection('64.23.231.206', 8021, 'ClueCon');
-
+    const conn = new Connection('127.0.0.1', 8021, 'ClueCon');
+    
     conn.on('error', (err) => {
-      console.error('❌ ESL Connection Error:', err);
+      console.error('ESL Connection Error:', err);
       res.status(500).json({
         success: false,
         message: 'Failed to connect to FreeSWITCH',
-        error: err.message,
+        error: err.message
       });
     });
 
-    conn.on('esl::ready', () => {
-      console.log("✅ Connected to FreeSWITCH!");
-
-      (conn as any).api('sofia xmlstatus profile internal reg', (response: any) => {
-        const xml = response.getBody();
-
-        if (!xml || !xml.includes('<registrations>')) {
-          res.status(200).json({
-            success: true,
-            data: [],
-            message: 'No registrations found.',
+    conn.on('esl::ready', async () => {
+      try {
+        // Get all registered extensions using show registrations command
+        const result = await new Promise<string>((resolve, reject) => {
+          (conn as any).api('sofia status profile internal reg', (response: any) => {
+            if (!response) reject(new Error('No response from FreeSWITCH'));
+            else resolve(response.getBody());
           });
-          conn.disconnect();
-          return;
-        }
+        });
 
-        // Parse the XML response
-        const parser = require('fast-xml-parser');
-        const parsed = parser.parse(xml);
-        const regs = parsed?.profile?.registrations?.registration;
-
-        let extensions: string[] = [];
-
-        if (Array.isArray(regs)) {
-          extensions = regs.map((r: any) => r.user);
-        } else if (regs?.user) {
-          extensions = [regs.user];
-        }
+        // Parse the registration data from sofia status
+        const registrations = result
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .filter(line => line.includes('Auth-User'))
+          .map(line => line.replace('Auth-User:', " ").trim());
 
         res.status(200).json({
           success: true,
-          data: extensions,
+          data: registrations
         });
-
+      } catch (error) {
+        console.error('❌ ESL command error:', error instanceof Error ? error.message : 'Unknown error');
+        res.status(500).json({
+          success: false,
+          message: 'Failed to get registrations',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      } finally {
         conn.disconnect();
-      });
+      }
     });
 
+    // Connect to FreeSWITCH
     conn.connected();
   } catch (error) {
-    console.error('❌ Unexpected error:', error);
+    console.error('❌ ESL error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({
       success: false,
-      message: 'Unhandled ESL error',
-      error: error instanceof Error ? error.message : 'Unknown error',
+      message: 'Failed to initialize ESL connection',
+      error: error instanceof Error ? error.message : 'Unknown error'
     });
   }
 }
