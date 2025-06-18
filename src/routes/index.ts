@@ -3,7 +3,6 @@ import { enRouter } from './en.route';
 
 const router = Router();
 
-// Health check endpoint
 router.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });

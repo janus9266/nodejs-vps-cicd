@@ -2,16 +2,6 @@ import { Request, Response } from 'express';
 import { Pool } from 'pg';
 import { Connection } from 'modesl';
 
-interface Extension {
-  extension: string;
-}
-
-interface RegisteredExtension {
-  extension: string;
-  contact: string;
-  status: string;
-}
-
 async function getAllExtensionNumbers(req: Request, res: Response): Promise<void> {
   const pool = new Pool({
     host: '127.0.0.1',
@@ -30,7 +20,7 @@ async function getAllExtensionNumbers(req: Request, res: Response): Promise<void
         data: extensions
     });
   } catch (error) {
-    console.error('❌ Query error:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('Query error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({
         success: false,
         message: 'Internal Server Error',
@@ -56,7 +46,6 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
 
     conn.on('esl::ready', async () => {
       try {
-        // Get all registered extensions using show registrations command
         const result = await new Promise<string>((resolve, reject) => {
           (conn as any).api('sofia status profile internal reg', (response: any) => {
             if (!response) reject(new Error('No response from FreeSWITCH'));
@@ -64,7 +53,6 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
           });
         });
 
-        // Parse the registration data from sofia status
         const registrations = result
           .split('\n')
           .filter(line => line.trim().length > 0)
@@ -76,7 +64,7 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
           data: registrations
         });
       } catch (error) {
-        console.error('❌ ESL command error:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('ESL command error:', error instanceof Error ? error.message : 'Unknown error');
         res.status(500).json({
           success: false,
           message: 'Failed to get registrations',
@@ -87,10 +75,9 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
       }
     });
 
-    // Connect to FreeSWITCH
     conn.connected();
   } catch (error) {
-    console.error('❌ ESL error:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('ESL error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({
       success: false,
       message: 'Failed to initialize ESL connection',
@@ -101,7 +88,6 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
 
 async function checkExtensionNumberIsRegistered(req: Request, res: Response): Promise<void> {
   const { extension } = req.params;
-  console.log(extension)
 
   if (!extension) {
     res.status(400).json({
@@ -124,7 +110,6 @@ async function checkExtensionNumberIsRegistered(req: Request, res: Response): Pr
 
     conn.on('esl::ready', async () => {
       try {
-        // Get all registered extensions using show registrations command
         const result = await new Promise<string>((resolve, reject) => {
           (conn as any).api('sofia status profile internal reg', (response: any) => {
             if (!response) reject(new Error('No response from FreeSWITCH'));
@@ -132,7 +117,6 @@ async function checkExtensionNumberIsRegistered(req: Request, res: Response): Pr
           });
         });
 
-        // Parse the registration data from sofia status
         const registrations = result
           .split('\n')
           .filter(line => line.trim().length > 0)
@@ -144,7 +128,7 @@ async function checkExtensionNumberIsRegistered(req: Request, res: Response): Pr
           data: registrations.includes(extension) ? "1" : '0'
         });
       } catch (error) {
-        console.error('❌ ESL command error:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('ESL command error:', error instanceof Error ? error.message : 'Unknown error');
         res.status(500).json({
           success: false,
           message: 'Failed to get registrations',
@@ -155,10 +139,9 @@ async function checkExtensionNumberIsRegistered(req: Request, res: Response): Pr
       }
     });
 
-    // Connect to FreeSWITCH
     conn.connected();
   } catch (error) {
-    console.error('❌ ESL error:', error instanceof Error ? error.message : 'Unknown error');
+    console.error('ESL error:', error instanceof Error ? error.message : 'Unknown error');
     res.status(500).json({
       success: false,
       message: 'Failed to initialize ESL connection',
