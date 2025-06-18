@@ -14,17 +14,17 @@ const port = process.env.PORT || 3000;
 
 // Middleware
 app.use(helmet()); // Security headers
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+// app.use(cors({
+//   origin: '*',
+//   methods: ['GET', 'POST', 'PUT', 'DELETE'],
+//   allowedHeaders: ['Content-Type', 'Authorization']
+// }));
 app.use(morgan('dev')); // Request logging
 app.use(express.json()); // Parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded bodies
 
 // Routes
-app.use('/api', apiRouter);
+app.use('/', apiRouter);
 
 // Error handling
 app.use(errorHandler);

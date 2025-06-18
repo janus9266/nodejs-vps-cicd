@@ -99,4 +99,71 @@ async function getAllRegisteredExtensionNumbers(req: Request, res: Response): Pr
   }
 }
 
-export { getAllExtensionNumbers, getAllRegisteredExtensionNumbers };
+async function checkExtensionNumberIsRegistered(req: Request, res: Response): Promise<void> {
+  const { extension } = req.params;
+  console.log(extension)
+
+  if (!extension) {
+    res.status(400).json({
+      success: false,
+      message: 'Extension number is required'
+    });
+  }
+
+  try {
+    const conn = new Connection('127.0.0.1', 8021, 'ClueCon');
+    
+    conn.on('error', (err) => {
+      console.error('ESL Connection Error:', err);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to connect to FreeSWITCH',
+        error: err.message
+      });
+    });
+
+    conn.on('esl::ready', async () => {
+      try {
+        // Get all registered extensions using show registrations command
+        const result = await new Promise<string>((resolve, reject) => {
+          (conn as any).api('sofia status profile internal reg', (response: any) => {
+            if (!response) reject(new Error('No response from FreeSWITCH'));
+            else resolve(response.getBody());
+          });
+        });
+
+        // Parse the registration data from sofia status
+        const registrations = result
+          .split('\n')
+          .filter(line => line.trim().length > 0)
+          .filter(line => line.includes('Auth-User'))
+          .map(line => line.replace('Auth-User:', " ").trim());
+
+        res.status(200).json({
+          success: true,
+          data: registrations.includes(extension) ? "1" : '0'
+        });
+      } catch (error) {
+        console.error('❌ ESL command error:', error instanceof Error ? error.message : 'Unknown error');
+        res.status(500).json({
+          success: false,
+          message: 'Failed to get registrations',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      } finally {
+        conn.disconnect();
+      }
+    });
+
+    // Connect to FreeSWITCH
+    conn.connected();
+  } catch (error) {
+    console.error('❌ ESL error:', error instanceof Error ? error.message : 'Unknown error');
+    res.status(500).json({
+      success: false,
+      message: 'Failed to initialize ESL connection',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}
+export { getAllExtensionNumbers, getAllRegisteredExtensionNumbers, checkExtensionNumberIsRegistered };
