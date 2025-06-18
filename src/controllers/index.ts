@@ -1,3 +1,3 @@
-import { getAllExtensionNumbers, getAllRegisteredExtensionNumbers } from './en.controller';
+import { getAllExtensionNumbers, getAllRegisteredExtensionNumbers, checkExtensionNumberIsRegistered } from './en.controller';
 
-export { getAllExtensionNumbers, getAllRegisteredExtensionNumbers };
+export { getAllExtensionNumbers, getAllRegisteredExtensionNumbers, checkExtensionNumberIsRegistered };
